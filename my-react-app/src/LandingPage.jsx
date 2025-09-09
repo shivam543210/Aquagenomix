@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom'; // <-- ADDED THIS IMPORT
 import './LandingPage.css';
 
 // Import local assets for icons
@@ -44,14 +45,22 @@ const LandingPage = () => {
               <a href="#about" className="nav-link">About</a>
             </div>
             <div className="navbar-auth">
-              <button className="login-button">Login</button>
-              <button className="signup-button">Sign Up</button>
+              {/* UPDATED: Login and Sign Up buttons now link to the dashboard */}
+              <Link to="/login"> {/* Add this Link wrapper */}
+                <button className="login-button">Login</button>
+              </Link>
+              <Link to="/signup"> {/* Changed from /dashboard to /signup */}
+                <button className="signup-button">Sign Up</button>
+              </Link>
             </div>
           </nav>
           <div className="hero-content">
             <h1 className="hero-title">Unlock Hidden Species in Your Samples.</h1>
             <p className="hero-subtitle">Let our AI uncover what traditional methods might miss.</p>
-            <button type="button"className="discover-button">Discover Now</button>
+            {/* UPDATED: Discover Now button now links to the dashboard */}
+            <Link to="/signup"> {/* Changed from /dashboard to /signup */}
+              <button type="button" className="discover-button">Discover Now</button>
+            </Link>
           </div>
         </div>
         <div className="main-content">

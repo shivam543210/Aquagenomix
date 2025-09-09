@@ -1102,6 +1102,8 @@
   border: none;
   transition: transform 0.2s;
   cursor: pointer;
+  padding: 0;
+  line-height: 0;
 }
 
 .action-button:hover {
@@ -1119,6 +1121,13 @@
   .action-icon {
     width: 2.5rem;
   }
+}
+
+/* NEW STYLE FOR DISABLED LINK/BUTTON */
+.action-button-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none; /* Prevents click events on the Link */
 }
 
 /* Mobile Cards */

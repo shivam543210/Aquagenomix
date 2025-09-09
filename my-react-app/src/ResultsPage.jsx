@@ -1,0 +1,681 @@
+import React from 'react';
+import { Download, Plus, BarChart3, Eye, ArrowLeft, ExternalLink, LogOut } from 'lucide-react';
+
+const styles = {
+  container: {
+    display: 'flex',
+    minHeight: '100vh',
+    backgroundColor: '#111827',
+    color: 'white',
+    fontFamily: 'system-ui, -apple-system, sans-serif'
+  },
+  sidebar: {
+    width: '320px',
+    backgroundColor: '#1f2937',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    minHeight: '100vh',
+    position: 'sticky',
+    top: 0,
+    flexShrink: 0
+  },
+  sidebarHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '32px'
+  },
+  logo: {
+    width: '32px',
+    height: '32px',
+    backgroundColor: '#3b82f6',
+    borderRadius: '4px'
+  },
+  navSection: {
+    marginBottom: '32px'
+  },
+  navTitle: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    marginBottom: '16px'
+  },
+  navList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  navItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    fontSize: '16px'
+  },
+  navItemHover: {
+    backgroundColor: 'rgba(75, 85, 99, 0.5)'
+  },
+  navItemSelected: {
+    backgroundColor: 'rgba(59, 130, 246, 0.2)'
+  },
+  iconContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px'
+  },
+  recentSection: {
+    marginBottom: '32px'
+  },
+  recentTitle: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    marginBottom: '16px'
+  },
+  recentList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  recentItem: {
+    color: '#d1d5db',
+    fontSize: '16px'
+  },
+  userProfile: {
+    backgroundColor: '#374151',
+    borderRadius: '12px',
+    padding: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+  },
+  userAvatar: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #60a5fa, #6b7280)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+    fontSize: '18px'
+  },
+  userDetails: {
+    flexGrow: 1
+  },
+  userName: {
+    fontSize: '18px',
+    fontWeight: '600',
+    margin: 0
+  },
+  userRole: {
+    fontSize: '14px',
+    color: '#9ca3af',
+    margin: 0
+  },
+  exitButton: {
+    color: '#d41a1aff',
+    cursor: 'pointer',
+    background: 'transparent',
+    border: 'none',
+    borderRadius: '0.5rem',
+    backgroundColor: 'rgb(55, 65, 81)',
+    transition: 'background-color 0.2s',
+  },
+  mainContent: {
+    flexGrow: 1,
+    padding: '32px',
+    overflowX: 'auto',
+    minWidth: 0
+  },
+  mainHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '32px'
+  },
+  backButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    backgroundColor: '#1f2937',
+    border: '1px solid #4b5563',
+    borderRadius: '12px',
+    padding: '12px 16px',
+    color: 'white',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    marginBottom: '16px'
+  },
+  mainTitle: {
+    fontSize: '48px',
+    fontWeight: 'bold',
+    marginBottom: '8px',
+    margin: 0
+  },
+  mainSubtitle: {
+    fontSize: '20px',
+    color: '#9ca3af',
+    margin: 0
+  },
+  downloadButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    background: 'linear-gradient(90deg, #3b82f6, #93c5fd)',
+    color: '#1f2937',
+    borderRadius: '9999px',
+    padding: '16px 24px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'opacity 0.2s',
+    border: 'none'
+  },
+  contentSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '32px'
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '24px'
+  },
+  twoColumnGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '24px'
+  },
+  card: {
+    backgroundColor: '#1f2937',
+    border: '1px solid #4b5563',
+    borderRadius: '16px',
+    padding: '24px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+  },
+  statCard: {
+    backgroundColor: '#1f2937',
+    border: '1px solid #4b5563',
+    borderRadius: '16px',
+    padding: '24px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+  },
+  statTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    marginBottom: '8px'
+  },
+  statValue: {
+    color: '#60a5fa',
+    fontSize: '36px',
+    fontWeight: 'bold',
+    marginBottom: '4px'
+  },
+  statUnit: {
+    color: '#9ca3af',
+    fontSize: '14px'
+  },
+  imageContainer: {
+    width: '100%',
+    height: '192px',
+    backgroundColor: '#0d9488',
+    borderRadius: '8px',
+    marginBottom: '16px',
+    overflow: 'hidden'
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  },
+  infoTitle: {
+    color: '#9ca3af',
+    fontSize: '14px',
+    fontWeight: '600',
+    marginBottom: '8px'
+  },
+  infoSubtitle: {
+    color: 'white',
+    fontSize: '20px',
+    fontWeight: 'bold',
+    marginBottom: '12px'
+  },
+  infoDescription: {
+    color: '#d1d5db',
+    fontSize: '14px',
+    marginBottom: '16px',
+    lineHeight: 1.5
+  },
+  knowMoreButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    color: '#60a5fa',
+    fontSize: '14px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    textDecoration: 'underline'
+  },
+  confidenceCard: {
+    backgroundColor: '#1f2937',
+    border: '1px solid #4b5563',
+    borderRadius: '16px',
+    padding: '24px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center'
+  },
+  confidenceTitle: {
+    color: 'white',
+    fontSize: '20px',
+    fontWeight: 'bold',
+    marginBottom: '24px'
+  },
+  confidenceMeterContainer: {
+    width: '100%',
+    maxWidth: '384px',
+    marginBottom: '24px'
+  },
+  confidenceMeter: {
+    position: 'relative',
+    height: '24px',
+    background: 'linear-gradient(90deg, #ef4444, #f59e0b, #10b981)',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    marginBottom: '8px'
+  },
+  confidenceIndicator: {
+    position: 'absolute',
+    top: '4px',
+    left: '79%',
+    height: '16px',
+    width: '4px',
+    backgroundColor: 'white',
+    borderRadius: '2px',
+    transform: 'translateX(-50%)'
+  },
+  confidenceLabels: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '14px',
+    color: '#9ca3af',
+    marginTop: '4px'
+  },
+  confidenceValue: {
+    fontSize: '64px',
+    fontWeight: 'bold',
+    color: '#10b981',
+    marginBottom: '24px'
+  },
+  legendContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  legendItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  legendBox: {
+    width: '12px',
+    height: '12px',
+    borderRadius: '50%'
+  },
+  legendText: {
+    fontSize: '14px',
+    color: '#d1d5db'
+  },
+  chartContainer: {
+    height: '320px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  chartTitle: {
+    color: 'white',
+    fontSize: '20px',
+    fontWeight: 'bold',
+    marginBottom: '16px',
+    textAlign: 'center'
+  },
+  legendGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '16px',
+    fontSize: '14px',
+    marginTop: '16px'
+  },
+  legendItemGrid: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  legendColorBox: {
+    width: '12px',
+    height: '12px',
+    borderRadius: '50%'
+  },
+  legendItemText: {
+    color: '#d1d5db'
+  },
+  legendItemValue: {
+    color: '#9ca3af',
+    marginLeft: 'auto'
+  },
+  placeholder: {
+    backgroundColor: '#1f2937',
+    border: '1px solid #4b5563',
+    borderRadius: '16px',
+    padding: '24px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  placeholderText: {
+    color: '#6b7280',
+    fontSize: '18px'
+  }
+};
+
+const SidebarIcon = ({ Icon, altText, isSelected }) => (
+  <div style={{...styles.iconContainer, color: isSelected ? '#60a5fa' : '#9ca3af'}}>
+    <Icon size={24} />
+  </div>
+);
+
+const UserProfile = ({ name, role }) => (
+  <div style={styles.userProfile}>
+    <div style={styles.userAvatar}>
+      {name.charAt(0)}
+    </div>
+    <div style={styles.userDetails}>
+      <h3 style={styles.userName}>{name}</h3>
+      <p style={styles.userRole}>{role}</p>
+    </div>
+    <button style={styles.exitButton}>
+      <LogOut size={20} />
+    </button>
+  </div>
+);
+
+const StatCard = ({ title, value, unit }) => (
+  <div style={styles.statCard}>
+    <h3 style={styles.statTitle}>{title}</h3>
+    <p style={styles.statValue}>{value}</p>
+    <p style={styles.statUnit}>{unit}</p>
+  </div>
+);
+
+const CustomPieChart = ({ data }) => {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  let cumulativePercentage = 0;
+
+  const polarToCartesian = (centerX, centerY, radius, angleInDegrees) => {
+    const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+    return {
+      x: centerX + (radius * Math.cos(angleInRadians)),
+      y: centerY + (radius * Math.sin(angleInRadians))
+    };
+  };
+
+  const createPath = (centerX, centerY, radius, startAngle, endAngle) => {
+    const start = polarToCartesian(centerX, centerY, radius, endAngle);
+    const end = polarToCartesian(centerX, centerY, radius, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    
+    return [
+      "M", centerX, centerY, 
+      "L", start.x, start.y, 
+      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y,
+      "Z"
+    ].join(" ");
+  };
+
+  return (
+    <div style={{display: 'flex', justifyContent: 'center'}}>
+      <svg width="280" height="280" viewBox="0 0 280 280">
+        {data.map((item, index) => {
+          const percentage = (item.value / total) * 100;
+          const startAngle = cumulativePercentage * 3.6;
+          const endAngle = (cumulativePercentage + percentage) * 3.6;
+          cumulativePercentage += percentage;
+
+          return (
+            <path
+              key={index}
+              d={createPath(140, 140, 100, startAngle, endAngle)}
+              fill={item.color}
+              stroke="#1F2937"
+              strokeWidth="2"
+            />
+          );
+        })}
+        <circle cx="140" cy="140" r="60" fill="#1F2937" />
+      </svg>
+    </div>
+  );
+};
+
+const CustomConfidenceMeter = ({ value }) => {
+  return (
+    <div style={styles.confidenceMeterContainer}>
+      <div style={styles.confidenceMeter}>
+        <div style={styles.confidenceIndicator} />
+      </div>
+      <div style={styles.confidenceLabels}>
+        <span>0%</span>
+        <span>100%</span>
+      </div>
+    </div>
+  );
+};
+
+export default function ResultPage() {
+  const pieChartData = [
+    { name: 'Species A', value: 25, color: '#4F46E5' },
+    { name: 'Species B', value: 20, color: '#06B6D4' },
+    { name: 'Species C', value: 18, color: '#10B981' },
+    { name: 'Species D', value: 15, color: '#F59E0B' },
+    { name: 'Species E', value: 12, color: '#EF4444' },
+    { name: 'Others', value: 10, color: '#8B5CF6' }
+  ];
+
+  const confidenceValue = 79;
+
+  const handleNavItemHover = (e) => {
+    if (!e.target.classList?.contains('selected')) {
+      e.target.style.backgroundColor = styles.navItemHover.backgroundColor;
+    }
+  };
+
+  const handleNavItemLeave = (e) => {
+    if (!e.target.classList?.contains('selected')) {
+      e.target.style.backgroundColor = 'transparent';
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      {/* Sidebar */}
+      <aside style={styles.sidebar}>
+        <div>
+          <div style={styles.sidebarHeader}>
+            <div style={styles.logo}></div>
+          </div>
+          
+          <div style={styles.navSection}>
+            <nav>
+              <h2 style={styles.navTitle}>Navigation</h2>
+              <div style={styles.navList}>
+                <div 
+                  style={styles.navItem}
+                  onMouseEnter={handleNavItemHover}
+                  onMouseLeave={handleNavItemLeave}
+                >
+                  <SidebarIcon Icon={Plus} altText="New Analysis" />
+                  <span>New Analysis</span>
+                </div>
+                <div 
+                  style={{...styles.navItem, ...styles.navItemSelected}}
+                  className="selected"
+                >
+                  <SidebarIcon Icon={BarChart3} altText="Dashboard" isSelected={true} />
+                  <span>Dashboard</span>
+                </div>
+                <div 
+                  style={styles.navItem}
+                  onMouseEnter={handleNavItemHover}
+                  onMouseLeave={handleNavItemLeave}
+                >
+                  <SidebarIcon Icon={Eye} altText="Analysis Section" />
+                  <span>Analysis Section</span>
+                </div>
+              </div>
+            </nav>
+          </div>
+          
+          <div style={styles.recentSection}>
+            <h2 style={styles.recentTitle}>Recent Analysis</h2>
+            <div style={styles.recentList}>
+              <div style={styles.recentItem}>Lake michigan sample of mari...</div>
+              <div style={styles.recentItem}>Coral reef microbial ecosystem...</div>
+              <div style={styles.recentItem}>Arctic ocean deep sample</div>
+            </div>
+          </div>
+        </div>
+        
+        <UserProfile name="Benzack" role="Researcher" />
+      </aside>
+
+      {/* Main Content */}
+      <main style={styles.mainContent}>
+        <div style={styles.mainHeader}>
+          <div>
+            <button 
+              style={styles.backButton}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#374151'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#1f2937'}
+            >
+              <ArrowLeft size={20} />
+              Back
+            </button>
+            <h1 style={styles.mainTitle}>Arctic Ocean Deep Sample</h1>
+            <p style={styles.mainSubtitle}>Analysis completed on 2024-01-15</p>
+          </div>
+          <button 
+            style={styles.downloadButton}
+            onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+            onMouseLeave={(e) => e.target.style.opacity = '1'}
+          >
+            <Download size={20} />
+            Download Report
+          </button>
+        </div>
+
+        <div style={styles.contentSection}>
+          {/* Stats Row */}
+          <div style={styles.statsGrid}>
+            <StatCard 
+              title="Taxonomic Richness" 
+              value="127" 
+              unit="unique species identified" 
+            />
+            <StatCard 
+              title="Sequences Analyzed" 
+              value="57,894" 
+              unit="total sequences processed" 
+            />
+            <StatCard 
+              title="Data Quality" 
+              value="2.4%" 
+              unit="contamination level" 
+            />
+          </div>
+
+          {/* Info Cards Row */}
+          <div style={styles.twoColumnGrid}>
+            <div style={styles.card}>
+              <div style={styles.imageContainer}>
+                <img 
+                  src="https://images.unsplash.com/photo-1576086213369-97a306d36557?w=400&h=200&fit=crop" 
+                  alt="Foraminifera" 
+                  style={styles.image}
+                />
+              </div>
+              <div>
+                <p style={styles.infoTitle}>About species</p>
+                <h3 style={styles.infoSubtitle}>
+                  Foraminifera — Nature's Microscopic Architects
+                </h3>
+                <p style={styles.infoDescription}>
+                  Tiny marine organisms with intricate calcium shells that record Earth's ancient oceans and shape modern seafloors.
+                </p>
+                <button style={styles.knowMoreButton}>
+                  Know More
+                  <ExternalLink size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div style={styles.confidenceCard}>
+              <h3 style={styles.confidenceTitle}>Confidence Level</h3>
+              <CustomConfidenceMeter value={confidenceValue} />
+              <div style={styles.confidenceValue}>{confidenceValue}%</div>
+              <div style={styles.legendContainer}>
+                <div style={styles.legendItem}>
+                  <div style={{...styles.legendBox, backgroundColor: '#ef4444'}}></div>
+                  <span style={styles.legendText}>Low Confidence</span>
+                </div>
+                <div style={styles.legendItem}>
+                  <div style={{...styles.legendBox, backgroundColor: '#f59e0b'}}></div>
+                  <span style={styles.legendText}>Mid Confidence</span>
+                </div>
+                <div style={styles.legendItem}>
+                  <div style={{...styles.legendBox, backgroundColor: '#10b981'}}></div>
+                  <span style={styles.legendText}>High Confidence</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Charts Row */}
+          <div style={styles.twoColumnGrid}>
+            <div style={styles.card}>
+              <h3 style={styles.chartTitle}>Species Distribution</h3>
+              <div style={styles.chartContainer}>
+                <CustomPieChart data={pieChartData} />
+              </div>
+              <div style={styles.legendGrid}>
+                {pieChartData.map((entry, index) => (
+                  <div key={index} style={styles.legendItemGrid}>
+                    <div 
+                      style={{...styles.legendColorBox, backgroundColor: entry.color}}
+                    ></div>
+                    <span style={styles.legendItemText}>{entry.name}</span>
+                    <span style={styles.legendItemValue}>{entry.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div style={styles.placeholder}>
+              <div style={styles.placeholderText}>Additional Chart Placeholder</div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

@@ -11,10 +11,16 @@ const Dashboard = () => {
   const [projectDescription, setProjectDescription] = useState('');
   const fileInputRef = useRef(null);
 
-  // Initialize projectsData to an empty array
+  // Initialize projectsData and pagination state
   const [projectsData, setProjectsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -26,7 +32,7 @@ const Dashboard = () => {
   const fetchProjects = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('https://sih-backend-sw7d.onrender.com/api/analysis?page=1&limit=10', {
+      const response = await fetch('https://sih-backend-sw7d.onrender.com/api/analysis?page=1&limit=100', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -34,18 +40,33 @@ const Dashboard = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-      const data = await response.json();
+      const responseData = await response.json();
       
-      const formattedData = data.map(project => ({
+      // Check if we have the analyses array in the response
+      const analyses = responseData.analyses || [];
+      
+      const formattedData = analyses.map(project => ({
         id: project._id,
         projectName: project.projectName || 'Unnamed Project',
         fileName: project.fileName,
         submissionDate: project.uploadDate ? new Date(project.uploadDate).toISOString().split('T')[0] : 'N/A',
-        status: project.status,
+        status: project.status === 'completed' ? 'Completed' : 'Processing',  // Capitalize status
         sequenceCount: project.summary ? project.summary.totalSequences : 'N/A',
-        speciesFound: project.summary && project.summary.speciesFound ? project.summary.speciesFound.length : 'N/A',
+        speciesFound: project.summary?.speciesFound?.length || 'N/A',
+        speciesFoundList: project.summary?.speciesFound || [],  // Store actual species list
+        averageConfidence: project.summary?.averageConfidence || 0,
+        processingTime: project.summary?.processingTime || 0
       }));
       
+      // Store pagination data
+      const paginationData = responseData.pagination || {
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: formattedData.length,
+        itemsPerPage: 10
+      };
+      
+      setPagination(paginationData);
       setProjectsData(formattedData);
     } catch (e) {
       setError("Failed to load existing projects.");
@@ -212,10 +233,14 @@ const Dashboard = () => {
     }
   ];
 
-  // Recent analysis should show actual uploaded projects
+  // Recent analysis should show actual uploaded projects with details
   const recentAnalysisItems = projectsData
     .slice(0, 3)
-    .map(project => project.projectName);
+    .map(project => ({
+      name: project.projectName,
+      status: project.status,
+      date: project.submissionDate
+    }));
 
   return (
     <div className="dashboard">
@@ -264,7 +289,13 @@ const Dashboard = () => {
                     {recentAnalysisItems.length > 0 ? (
                       recentAnalysisItems.map((item, index) => (
                         <li key={index} className={`recent-analysis-item ${index > 0 ? 'recent-analysis-item-spaced' : ''}`}>
-                          <button className="recent-analysis-button">{item}</button>
+                          <div className="recent-analysis-content">
+                            <button className="recent-analysis-button">
+                              <span className="project-name">{item.name}</span>
+                             
+                              
+                            </button>
+                          </div>
                         </li>
                       ))
                     ) : (
@@ -395,24 +426,18 @@ const Dashboard = () => {
                             <div className="table-cell text-center">{project.sequenceCount}</div>
                             <div className="table-cell text-center">{project.speciesFound}</div>
                             <div className="action-buttons">
-                              {/* View Button - Fixed to be clickable for completed projects */}
-                              {project.status === 'Completed' ? (
-                                <Link 
-                                  to={`/results/${project.id}`}
-                                  state={{ 
-                                    projectData: project,
-                                    analysisId: project.id,
-                                    apiUrl: `https://sih-backend-sw7d.onrender.com/api/analysis/${project.id}`
-                                  }}
-                                  className="action-button action-view-button"
-                                >
-                                  <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon" alt="View Results" />
-                                </Link>
-                              ) : (
-                                <button className="action-button action-button-disabled" disabled>
-                                  <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon action-icon-disabled" alt="View Results" />
-                                </button>
-                              )}
+                              {/* View Button - Always clickable */}
+                              <Link 
+                                to={`/results/${project.id}`}
+                                state={{ 
+                                  projectData: project,
+                                  analysisId: project.id,
+                                  apiUrl: `https://sih-backend-sw7d.onrender.com/api/analysis/${project.id}`
+                                }}
+                                className={`action-button ${project.status === 'Completed' ? 'action-view-button' : 'action-view-button-processing'}`}
+                              >
+                                <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon" alt="View Results" />
+                              </Link>
                               
                               <button className="action-button">
                                 <img src="https://api.builder.io/api/v1/image/assets/TEMP/ca50164a8495f1605dc820ea91d0fea5f145d33f?placeholderIfAbsent=true" className="action-icon" alt="Download" />
@@ -445,24 +470,18 @@ const Dashboard = () => {
                               <div className="card-actions">
                                 <span className="actions-label">Actions:</span>
                                 <div className="action-buttons">
-                                  {/* View Button - Fixed for mobile */}
-                                  {project.status === 'Completed' ? (
-                                    <Link 
-                                      to={`/results/${project.id}`}
-                                      state={{ 
-                                        projectData: project,
-                                        analysisId: project.id,
-                                        apiUrl: `https://sih-backend-sw7d.onrender.com/api/analysis/${project.id}`
-                                      }}
-                                      className="action-button action-view-button"
-                                    >
-                                      <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon" alt="View Results" />
-                                    </Link>
-                                  ) : (
-                                    <button className="action-button action-button-disabled" disabled>
-                                      <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon action-icon-disabled" alt="View Results" />
-                                    </button>
-                                  )}
+                                  {/* View Button - Always clickable for mobile */}
+                                  <Link 
+                                    to={`/results/${project.id}`}
+                                    state={{ 
+                                      projectData: project,
+                                      analysisId: project.id,
+                                      apiUrl: `https://sih-backend-sw7d.onrender.com/api/analysis/${project.id}`
+                                    }}
+                                    className={`action-button ${project.status === 'Completed' ? 'action-view-button' : 'action-view-button-processing'}`}
+                                  >
+                                    <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon" alt="View Results" />
+                                  </Link>
                                   
                                   <button className="action-button">
                                     <img src="https://api.builder.io/api/v1/image/assets/TEMP/ca50164a8495f1605dc820ea91d0fea5f145d33f?placeholderIfAbsent=true" className="action-icon" alt="Download" />

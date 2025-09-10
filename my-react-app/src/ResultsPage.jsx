@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Plus, BarChart3, Eye, ArrowLeft, ExternalLink, LogOut } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const styles = {
   container: {
@@ -53,8 +54,20 @@ const styles = {
     padding: '12px',
     borderRadius: '8px',
     cursor: 'pointer',
-    transition: 'background-color 0.2s',
-    fontSize: '16px'
+    transition: 'all 0.2s ease',
+    fontSize: '16px',
+    userSelect: 'none',
+    outline: 'none',
+    '&:hover': {
+      backgroundColor: 'rgba(75, 85, 99, 0.5)',
+      transform: 'translateY(-1px)'
+    },
+    '&:active': {
+      transform: 'translateY(0)'
+    },
+    '&:focus': {
+      boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)'
+    }
   },
   navItemHover: {
     backgroundColor: 'rgba(75, 85, 99, 0.5)'
@@ -395,20 +408,33 @@ const SidebarIcon = ({ Icon, altText, isSelected }) => (
   </div>
 );
 
-const UserProfile = ({ name, role }) => (
-  <div style={styles.userProfile}>
-    <div style={styles.userAvatar}>
-      {name.charAt(0)}
+const UserProfile = ({ name, role }) => {
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    navigate('/login');
+  };
+
+  return (
+    <div style={styles.userProfile}>
+      <div style={styles.userAvatar}>
+        {name.charAt(0)}
+      </div>
+      <div style={styles.userDetails}>
+        <h3 style={styles.userName}>{name}</h3>
+        <p style={styles.userRole}>{role}</p>
+      </div>
+      <button 
+        style={styles.exitButton}
+        onClick={handleLogout}
+        title="Logout"
+      >
+        <LogOut size={20} />
+      </button>
     </div>
-    <div style={styles.userDetails}>
-      <h3 style={styles.userName}>{name}</h3>
-      <p style={styles.userRole}>{role}</p>
-    </div>
-    <button style={styles.exitButton}>
-      <LogOut size={20} />
-    </button>
-  </div>
-);
+  );
+};
 
 const StatCard = ({ title, value, unit }) => (
   <div style={styles.statCard}>
@@ -483,16 +509,78 @@ const CustomConfidenceMeter = ({ value }) => {
 };
 
 export default function ResultPage() {
-  const pieChartData = [
-    { name: 'Species A', value: 25, color: '#4F46E5' },
-    { name: 'Species B', value: 20, color: '#06B6D4' },
-    { name: 'Species C', value: 18, color: '#10B981' },
-    { name: 'Species D', value: 15, color: '#F59E0B' },
-    { name: 'Species E', value: 12, color: '#EF4444' },
-    { name: 'Others', value: 10, color: '#8B5CF6' }
-  ];
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [analysisData, setAnalysisData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const confidenceValue = 79;
+  // Get the analysis ID and API URL from the navigation state
+  const { analysisId, apiUrl } = location.state || {};
+
+  useEffect(() => {
+    const fetchAnalysisData = async () => {
+      if (!analysisId || !apiUrl) {
+        setError("No analysis ID or API URL provided");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(apiUrl, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch analysis data');
+        }
+
+        const data = await response.json();
+        setAnalysisData(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalysisData();
+  }, [analysisId, apiUrl]);
+
+  // Loading state
+  if (loading) {
+    return <div style={{...styles.container, justifyContent: 'center', alignItems: 'center'}}>
+      <h2 style={{color: 'white'}}>Loading analysis data...</h2>
+    </div>;
+  }
+
+  // Error state
+  if (error) {
+    return <div style={{...styles.container, justifyContent: 'center', alignItems: 'center'}}>
+      <h2 style={{color: 'red'}}>{error}</h2>
+    </div>;
+  }
+
+  // If we have no data
+  if (!analysisData) {
+    return <div style={{...styles.container, justifyContent: 'center', alignItems: 'center'}}>
+      <h2 style={{color: 'white'}}>No analysis data available</h2>
+    </div>;
+  }
+
+  // Calculate confidence value as a percentage
+  const confidenceValue = Math.round(analysisData.summary.averageConfidence * 100);
+
+  // Create pie chart data from species found
+  const colors = ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+  const pieChartData = analysisData.summary.speciesFound.map((species, index) => ({
+    name: species.replace(/_/g, ' '),
+    value: Math.round(100 / analysisData.summary.speciesFound.length), // Equal distribution for now
+    color: colors[index % colors.length]
+  }));
 
   const handleNavItemHover = (e) => {
     if (!e.target.classList?.contains('selected')) {
@@ -519,29 +607,31 @@ export default function ResultPage() {
             <nav>
               <h2 style={styles.navTitle}>Navigation</h2>
               <div style={styles.navList}>
-                <div 
-                  style={styles.navItem}
-                  onMouseEnter={handleNavItemHover}
-                  onMouseLeave={handleNavItemLeave}
+                <button 
+                  style={{...styles.navItem, border: 'none', width: '100%', backgroundColor: 'transparent'}}
+                  onClick={() => navigate('/dashboard')}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(75, 85, 99, 0.5)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                 >
                   <SidebarIcon Icon={Plus} altText="New Analysis" />
                   <span>New Analysis</span>
-                </div>
-                <div 
-                  style={{...styles.navItem, ...styles.navItemSelected}}
-                  className="selected"
+                </button>
+                <button 
+                  style={{...styles.navItem, ...styles.navItemSelected, border: 'none', width: '100%'}}
+                  onClick={() => navigate('/dashboard')}
                 >
                   <SidebarIcon Icon={BarChart3} altText="Dashboard" isSelected={true} />
                   <span>Dashboard</span>
-                </div>
-                <div 
-                  style={styles.navItem}
-                  onMouseEnter={handleNavItemHover}
-                  onMouseLeave={handleNavItemLeave}
+                </button>
+                <button 
+                  style={{...styles.navItem, border: 'none', width: '100%', backgroundColor: 'transparent'}}
+                  onClick={() => navigate('/dashboard')}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(75, 85, 99, 0.5)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
                 >
                   <SidebarIcon Icon={Eye} altText="Analysis Section" />
                   <span>Analysis Section</span>
-                </div>
+                </button>
               </div>
             </nav>
           </div>
@@ -549,9 +639,34 @@ export default function ResultPage() {
           <div style={styles.recentSection}>
             <h2 style={styles.recentTitle}>Recent Analysis</h2>
             <div style={styles.recentList}>
-              <div style={styles.recentItem}>Lake michigan sample of mari...</div>
-              <div style={styles.recentItem}>Coral reef microbial ecosystem...</div>
-              <div style={styles.recentItem}>Arctic ocean deep sample</div>
+              {location.state?.recentAnalyses?.map((analysis, index) => (
+                <button
+                  key={index}
+                  onClick={() => navigate(`/results/${analysis.id}`, {
+                    state: {
+                      projectData: analysis,
+                      analysisId: analysis.id,
+                      apiUrl: `https://sih-backend-sw7d.onrender.com/api/analysis/${analysis.id}`
+                    }
+                  })}
+                  style={{
+                    ...styles.recentItem,
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '8px',
+                    borderRadius: '4px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(75, 85, 99, 0.5)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                >
+                  {analysis.projectName}
+                </button>
+              )) || (
+                <div style={styles.recentItem}>No recent analyses</div>
+              )}
             </div>
           </div>
         </div>
@@ -565,17 +680,45 @@ export default function ResultPage() {
           <div>
             <button 
               style={styles.backButton}
+              onClick={() => navigate('/dashboard')}
               onMouseEnter={(e) => e.target.style.backgroundColor = '#374151'}
               onMouseLeave={(e) => e.target.style.backgroundColor = '#1f2937'}
             >
               <ArrowLeft size={20} />
-              Back
+              Back to Dashboard
             </button>
-            <h1 style={styles.mainTitle}>Arctic Ocean Deep Sample</h1>
-            <p style={styles.mainSubtitle}>Analysis completed on 2024-01-15</p>
+            <h1 style={styles.mainTitle}>{location.state?.projectData?.projectName || 'Analysis Results'}</h1>
+            <p style={styles.mainSubtitle}>
+              Status: {analysisData.status} 
+              {analysisData.status === 'completed' && ` - Processing Time: ${analysisData.summary.processingTime.toFixed(2)}s`}
+            </p>
           </div>
           <button 
             style={styles.downloadButton}
+            onClick={async () => {
+              try {
+                const token = localStorage.getItem('authToken');
+                const response = await fetch(`https://sih-backend-sw7d.onrender.com/api/analysis/${analysisId}/download`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`
+                  }
+                });
+                
+                if (!response.ok) throw new Error('Download failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `analysis-${analysisId}-report.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+              } catch (error) {
+                alert('Failed to download report: ' + error.message);
+              }
+            }}
             onMouseEnter={(e) => e.target.style.opacity = '0.9'}
             onMouseLeave={(e) => e.target.style.opacity = '1'}
           >
@@ -588,19 +731,19 @@ export default function ResultPage() {
           {/* Stats Row */}
           <div style={styles.statsGrid}>
             <StatCard 
-              title="Taxonomic Richness" 
-              value="127" 
+              title="Species Found" 
+              value={analysisData.summary.speciesFound.length} 
               unit="unique species identified" 
             />
             <StatCard 
-              title="Sequences Analyzed" 
-              value="57,894" 
-              unit="total sequences processed" 
+              title="Total Sequences" 
+              value={analysisData.summary.totalSequences.toLocaleString()} 
+              unit="sequences processed" 
             />
             <StatCard 
-              title="Data Quality" 
-              value="2.4%" 
-              unit="contamination level" 
+              title="Average Confidence" 
+              value={`${confidenceValue}%`}
+              unit="sequence identification accuracy" 
             />
           </div>
 
@@ -622,10 +765,15 @@ export default function ResultPage() {
                 <p style={styles.infoDescription}>
                   Tiny marine organisms with intricate calcium shells that record Earth's ancient oceans and shape modern seafloors.
                 </p>
-                <button style={styles.knowMoreButton}>
+                <a 
+                  href={`https://www.ncbi.nlm.nih.gov/search/all/?term=${analysisData.summary.speciesFound[0]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={styles.knowMoreButton}
+                >
                   Know More
                   <ExternalLink size={14} />
-                </button>
+                </a>
               </div>
             </div>
 

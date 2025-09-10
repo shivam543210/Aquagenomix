@@ -3,10 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 
 const Dashboard = () => {
-  // Hook for programmatic navigation
   const navigate = useNavigate();
-
-  // Component state (UI)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -14,43 +11,55 @@ const Dashboard = () => {
   const [projectDescription, setProjectDescription] = useState('');
   const fileInputRef = useRef(null);
 
-  // Data state
+  // Initialize projectsData to an empty array
   const [projectsData, setProjectsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Effect to check for authentication token on component mount
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (!token) {
-      navigate('/login'); // Redirect to login if no token is found
+      navigate('/login');
     }
   }, [navigate]);
 
-  // Effect to fetch existing projects from the backend
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        // NOTE: Make sure you have a separate API endpoint to GET all projects
-        const response = await fetch('https://sih-backend-sw7d.onrender.com/api/analysis/projects'); 
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
+  const fetchProjects = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('https://sih-backend-sw7d.onrender.com/api/analysis?page=1&limit=10', {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-        const data = await response.json();
-        setProjectsData(data);
-      } catch (e) {
-        setError("Failed to load existing projects.");
-        console.error("API fetch error:", e);
-      } finally {
-        setLoading(false);
+      }); 
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
-    };
+      const data = await response.json();
+      
+      const formattedData = data.map(project => ({
+        id: project._id,
+        projectName: project.projectName || 'Unnamed Project',
+        fileName: project.fileName,
+        submissionDate: project.uploadDate ? new Date(project.uploadDate).toISOString().split('T')[0] : 'N/A',
+        status: project.status,
+        sequenceCount: project.summary ? project.summary.totalSequences : 'N/A',
+        speciesFound: project.summary && project.summary.speciesFound ? project.summary.speciesFound.length : 'N/A',
+      }));
+      
+      setProjectsData(formattedData);
+    } catch (e) {
+      setError("Failed to load existing projects.");
+      console.error("API fetch error:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Only fetch data if the user is authenticated
+  useEffect(() => {
     if (localStorage.getItem('authToken')) {
       fetchProjects();
     }
-  }, []);
+  }, [navigate]);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const handleDragOver = (e) => { e.preventDefault(); setIsDragOver(true); };
@@ -76,7 +85,6 @@ const Dashboard = () => {
     fileInputRef.current?.click();
   };
 
-  // Async function to handle new analysis submission
   const handleProjectSubmit = async (e) => {
     e.preventDefault();
     if (!selectedFile || !projectName) {
@@ -106,6 +114,9 @@ const Dashboard = () => {
       const response = await fetch('https://sih-backend-sw7d.onrender.com/api/analysis/upload', {
         method: 'POST',
         body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
       });
 
       if (!response.ok) {
@@ -113,14 +124,34 @@ const Dashboard = () => {
       }
 
       const result = await response.json();
-
-      setProjectsData(prevProjects =>
-        prevProjects.map(p => (p.id === tempId ? { ...result, id: result.id || tempId } : p))
-      );
       
+      // Update the optimistic entry with real data
+      setProjectsData(prevProjects =>
+        prevProjects.map(p => 
+          (p.id === tempId ? {
+            id: result._id,
+            projectName: result.projectName || 'Unnamed Project',
+            fileName: result.fileName,
+            submissionDate: result.uploadDate ? new Date(result.uploadDate).toISOString().split('T')[0] : 'N/A',
+            status: result.status,
+            sequenceCount: result.summary ? result.summary.totalSequences : 'N/A',
+            speciesFound: result.summary && result.summary.speciesFound ? result.summary.speciesFound.length : 'N/A',
+          } : p)
+        )
+      );
+
+      // Clear form - Properly reset all form states
       setProjectName('');
       setProjectDescription('');
       setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      // Refresh the projects list to get latest data
+      setTimeout(() => {
+        fetchProjects();
+      }, 1000);
 
     } catch (error) {
       console.error("Failed to start analysis:", error);
@@ -129,24 +160,62 @@ const Dashboard = () => {
     }
   };
 
+  const totalProjects = projectsData.length;
+  const completedProjects = projectsData.filter(p => p.status === 'Completed').length;
+  const processingProjects = projectsData.filter(p => p.status === 'Processing').length;
+  
+  // Better calculation for species found
+  const totalSpeciesFound = projectsData
+    .filter(p => p.status === 'Completed' && p.speciesFound !== 'N/A' && p.speciesFound !== '...')
+    .reduce((sum, project) => {
+      const speciesCount = typeof project.speciesFound === 'number' ? project.speciesFound : parseInt(project.speciesFound) || 0;
+      return sum + speciesCount;
+    }, 0);
+
   const stats = [
-    { label: "Total Projects", value: projectsData.length, color: "primary-blue" },
-    { label: "Completed", value: projectsData.filter(p => p.status === 'Completed').length, color: "secondary-blue" },
-    { label: "Processing", value: projectsData.filter(p => p.status === 'Processing').length, color: "primary-blue" },
-    { label: "Species Found", value: "320", color: "primary-blue" }
+    { label: "Total Projects", value: totalProjects, color: "primary-blue" },
+    { label: "Completed", value: completedProjects, color: "secondary-blue" },
+    { label: "Processing", value: processingProjects, color: "primary-blue" },
+    { label: "Species Found", value: totalSpeciesFound, color: "primary-blue" }
   ];
 
+  // Replace icon placeholders with actual SVG icons
   const navigationItems = [
-    { icon: "...", label: "New Analysis" },
-    { icon: "...", label: "Dashboard" },
-    { icon: "...", label: "Analysis Section" }
+    { 
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2L2 7v10c0 5.55 3.84 10 9 10s9-4.45 9-10V7L12 2z"/>
+          <path d="M12 22s8-4 8-10V7l-8-5-8 5v5c0 6 8 10 8 10z"/>
+        </svg>
+      ), 
+      label: "New Analysis" 
+    },
+    { 
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="7" height="7"/>
+          <rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/>
+        </svg>
+      ), 
+      label: "Dashboard" 
+    },
+    { 
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z"/>
+          <path d="M19 4H15a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>
+        </svg>
+      ), 
+      label: "Analysis Section" 
+    }
   ];
 
-  const recentItems = [
-    "Lake michigan sample of marine and",
-    "Coral reef microbial ecosystem ecological network",
-    "Arctic ocean deep sample"
-  ];
+  // Recent analysis should show actual uploaded projects
+  const recentAnalysisItems = projectsData
+    .slice(0, 3)
+    .map(project => project.projectName);
 
   return (
     <div className="dashboard">
@@ -182,7 +251,7 @@ const Dashboard = () => {
                     {navigationItems.map((item, index) => (
                       <li key={index} className={`navigation-item ${index > 0 ? 'navigation-item-spaced' : ''}`}>
                         <button className="navigation-button">
-                          <img src={item.icon} className="navigation-icon" alt={`${item.label} icon`} />
+                          <span className="navigation-icon">{item.icon}</span>
                           <span className="navigation-label">{item.label}</span>
                         </button>
                       </li>
@@ -192,11 +261,17 @@ const Dashboard = () => {
                 <section className="recent-analysis">
                   <h2 className="recent-analysis-title">Recent Analysis</h2>
                   <ul className="recent-analysis-list">
-                    {recentItems.map((item, index) => (
-                      <li key={index} className={`recent-analysis-item ${index > 0 ? 'recent-analysis-item-spaced' : ''}`}>
-                        <button className="recent-analysis-button">{item}</button>
+                    {recentAnalysisItems.length > 0 ? (
+                      recentAnalysisItems.map((item, index) => (
+                        <li key={index} className={`recent-analysis-item ${index > 0 ? 'recent-analysis-item-spaced' : ''}`}>
+                          <button className="recent-analysis-button">{item}</button>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="recent-analysis-item">
+                        <button className="recent-analysis-button">No recent analysis</button>
                       </li>
-                    ))}
+                    )}
                   </ul>
                 </section>
               </div>
@@ -320,11 +395,32 @@ const Dashboard = () => {
                             <div className="table-cell text-center">{project.sequenceCount}</div>
                             <div className="table-cell text-center">{project.speciesFound}</div>
                             <div className="action-buttons">
-                              <Link to={project.status === 'Completed' ? `/results` : '#'} state={{ projectData: project }} className={project.status !== 'Completed' ? 'action-button-disabled' : ''} aria-disabled={project.status !== 'Completed'}>
-                                <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon" alt="View Results" />
-                              </Link>
-                              <button className="action-button"><img src="https://api.builder.io/api/v1/image/assets/TEMP/ca50164a8495f1605dc820ea91d0fea5f145d33f?placeholderIfAbsent=true" className="action-icon" alt="Download" /></button>
-                              <button className="action-button"><img src="https://api.builder.io/api/v1/image/assets/TEMP/0d181bfa0bbf126d57add7dcc55c5db52f680bb0?placeholderIfAbsent=true" className="action-icon" alt="Delete" /></button>
+                              {/* View Button - Fixed to be clickable for completed projects */}
+                              {project.status === 'Completed' ? (
+                                <Link 
+                                  to={`/results/${project.id}`}
+                                  state={{ 
+                                    projectData: project,
+                                    analysisId: project.id,
+                                    apiUrl: `https://sih-backend-sw7d.onrender.com/api/analysis/${project.id}`
+                                  }}
+                                  className="action-button action-view-button"
+                                >
+                                  <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon" alt="View Results" />
+                                </Link>
+                              ) : (
+                                <button className="action-button action-button-disabled" disabled>
+                                  <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon action-icon-disabled" alt="View Results" />
+                                </button>
+                              )}
+                              
+                              <button className="action-button">
+                                <img src="https://api.builder.io/api/v1/image/assets/TEMP/ca50164a8495f1605dc820ea91d0fea5f145d33f?placeholderIfAbsent=true" className="action-icon" alt="Download" />
+                              </button>
+                              
+                              <button className="action-button">
+                                <img src="https://api.builder.io/api/v1/image/assets/TEMP/0d181bfa0bbf126d57add7dcc55c5db52f680bb0?placeholderIfAbsent=true" className="action-icon" alt="Delete" />
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -349,10 +445,28 @@ const Dashboard = () => {
                               <div className="card-actions">
                                 <span className="actions-label">Actions:</span>
                                 <div className="action-buttons">
-                                  <Link to={project.status === 'Completed' ? `/results` : '#'} state={{ projectData: project }} className={project.status !== 'Completed' ? 'action-button-disabled' : ''} aria-disabled={project.status !== 'Completed'}>
-                                    <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon" alt="View Results" />
-                                  </Link>
-                                  <button className="action-button"><img src="https://api.builder.io/api/v1/image/assets/TEMP/ca50164a8495f1605dc820ea91d0fea5f145d33f?placeholderIfAbsent=true" className="action-icon" alt="Download" /></button>
+                                  {/* View Button - Fixed for mobile */}
+                                  {project.status === 'Completed' ? (
+                                    <Link 
+                                      to={`/results/${project.id}`}
+                                      state={{ 
+                                        projectData: project,
+                                        analysisId: project.id,
+                                        apiUrl: `https://sih-backend-sw7d.onrender.com/api/analysis/${project.id}`
+                                      }}
+                                      className="action-button action-view-button"
+                                    >
+                                      <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon" alt="View Results" />
+                                    </Link>
+                                  ) : (
+                                    <button className="action-button action-button-disabled" disabled>
+                                      <img src="https://api.builder.io/api/v1/image/assets/TEMP/ccedafc351d4bd8b6df3a8a543d11397f776c950?placeholderIfAbsent=true" className="action-icon action-icon-disabled" alt="View Results" />
+                                    </button>
+                                  )}
+                                  
+                                  <button className="action-button">
+                                    <img src="https://api.builder.io/api/v1/image/assets/TEMP/ca50164a8495f1605dc820ea91d0fea5f145d33f?placeholderIfAbsent=true" className="action-icon" alt="Download" />
+                                  </button>
                                 </div>
                               </div>
                             </div>

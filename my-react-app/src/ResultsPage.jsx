@@ -546,27 +546,30 @@ export default function ResultPage() {
 
   useEffect(() => {
     const fetchAnalysisData = async () => {
-      if (!analysisId || !apiUrl) {
-        setError("No analysis ID or API URL provided");
+      if (!analysisId) {
+        setError("No analysis ID provided");
         setLoading(false);
         return;
       }
 
       try {
         const token = localStorage.getItem('authToken');
-        const response = await fetch(apiUrl, {
+        const response = await fetch(`http://localhost:3000/api/analysis/${analysisId}`, {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch analysis data');
+          throw new Error(`Failed to fetch analysis data: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('Analysis data:', data);  // Debug log
         setAnalysisData(data);
       } catch (err) {
+        console.error('Fetch error:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -574,7 +577,7 @@ export default function ResultPage() {
     };
 
     fetchAnalysisData();
-  }, [analysisId, apiUrl]);
+  }, [analysisId]);
 
   // Loading state
   if (loading) {
@@ -672,7 +675,7 @@ export default function ResultPage() {
                     state: {
                       projectData: analysis,
                       analysisId: analysis.id,
-                      apiUrl: `https://sih-backend-sw7d.onrender.com/api/analysis/${analysis.id}`
+                      apiUrl: `http://localhost:3000/analysis/${analysis.id}`
                     }
                   })}
                   style={{
@@ -724,13 +727,17 @@ export default function ResultPage() {
             onClick={async () => {
               try {
                 const token = localStorage.getItem('authToken');
-                const response = await fetch(`https://sih-backend-sw7d.onrender.com/api/analysis/${analysisId}/download`, {
+                const response = await fetch(`http://localhost:3000/api/analysis/${analysisId}/download`, {
                   headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                   }
                 });
                 
-                if (!response.ok) throw new Error('Download failed');
+                if (!response.ok) {
+                  const errorData = await response.json().catch(() => ({}));
+                  throw new Error(errorData.message || 'Download failed');
+                }
                 
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);

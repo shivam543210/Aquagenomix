@@ -432,7 +432,7 @@ const Dashboard = () => {
                                 state={{ 
                                   projectData: project,
                                   analysisId: project.id,
-                                  apiUrl: `https://sih-backend-sw7d.onrender.com/api/analysis/${project.id}`
+                                  apiUrl: `http://localhost:3000/analysis/${project.id}`
                                 }}
                                 className={`action-button ${project.status === 'Completed' ? 'action-view-button' : 'action-view-button-processing'}`}
                               >
@@ -473,10 +473,11 @@ const Dashboard = () => {
                                   {/* View Button - Always clickable for mobile */}
                                   <Link 
                                     to={`/results/${project.id}`}
+                                    
                                     state={{ 
                                       projectData: project,
                                       analysisId: project.id,
-                                      apiUrl: `https://sih-backend-sw7d.onrender.com/api/analysis/${project.id}`
+                                      apiUrl: `http://localhost:3000/analysis/${project.id}`
                                     }}
                                     className={`action-button ${project.status === 'Completed' ? 'action-view-button' : 'action-view-button-processing'}`}
                                   >

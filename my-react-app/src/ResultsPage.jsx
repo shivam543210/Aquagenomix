@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Download, Plus, BarChart3, Eye, ArrowLeft, ExternalLink, LogOut } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Download, Plus, BarChart3, Eye, ArrowLeft, ExternalLink, LogOut, MapPin, Activity, Database, Dna } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const styles = {
   container: {
@@ -436,60 +440,82 @@ const UserProfile = ({ name, role }) => {
   );
 };
 
-const StatCard = ({ title, value, unit }) => (
-  <div style={styles.statCard}>
-    <h3 style={styles.statTitle}>{title}</h3>
-    <p style={styles.statValue}>{value}</p>
-    <p style={styles.statUnit}>{unit}</p>
-  </div>
-);
+const StatCard = ({ title, value, unit, icon: Icon }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  return (
+    <div 
+      style={{
+        ...styles.statCard,
+        transform: isHovered ? 'translateY(-5px)' : 'translateY(0)',
+        transition: 'all 0.3s ease',
+        cursor: 'pointer',
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        padding: '1rem',
+        opacity: 0.1,
+        transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+        transition: 'all 0.3s ease'
+      }}>
+        <Icon size={40} />
+      </div>
+      <h3 style={styles.statTitle}>{title}</h3>
+      <p style={{
+        ...styles.statValue,
+        transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+        transition: 'all 0.3s ease'
+      }}>{value}</p>
+      <p style={styles.statUnit}>{unit}</p>
+    </div>
+  );
+};
 
 const CustomPieChart = ({ data }) => {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-  let cumulativePercentage = 0;
-
-  const polarToCartesian = (centerX, centerY, radius, angleInDegrees) => {
-    const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
-    return {
-      x: centerX + (radius * Math.cos(angleInRadians)),
-      y: centerY + (radius * Math.sin(angleInRadians))
-    };
+  const chartData = {
+    labels: data.map(item => item.name),
+    datasets: [
+      {
+        data: data.map(item => item.value),
+        backgroundColor: data.map(item => item.color),
+        borderColor: '#1F2937',
+        borderWidth: 2,
+        hoverOffset: 10,
+      },
+    ],
   };
 
-  const createPath = (centerX, centerY, radius, startAngle, endAngle) => {
-    const start = polarToCartesian(centerX, centerY, radius, endAngle);
-    const end = polarToCartesian(centerX, centerY, radius, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    
-    return [
-      "M", centerX, centerY, 
-      "L", start.x, start.y, 
-      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y,
-      "Z"
-    ].join(" ");
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: '#374151',
+        titleFont: {
+          size: 14,
+          weight: 'bold',
+        },
+        bodyFont: {
+          size: 12,
+        },
+        padding: 12,
+        cornerRadius: 8,
+      },
+    },
   };
 
   return (
-    <div style={{display: 'flex', justifyContent: 'center'}}>
-      <svg width="280" height="280" viewBox="0 0 280 280">
-        {data.map((item, index) => {
-          const percentage = (item.value / total) * 100;
-          const startAngle = cumulativePercentage * 3.6;
-          const endAngle = (cumulativePercentage + percentage) * 3.6;
-          cumulativePercentage += percentage;
-
-          return (
-            <path
-              key={index}
-              d={createPath(140, 140, 100, startAngle, endAngle)}
-              fill={item.color}
-              stroke="#1F2937"
-              strokeWidth="2"
-            />
-          );
-        })}
-        <circle cx="140" cy="140" r="60" fill="#1F2937" />
-      </svg>
+    <div style={{ position: 'relative', width: '280px', height: '280px' }}>
+      <Pie data={chartData} options={options} />
     </div>
   );
 };
@@ -578,7 +604,7 @@ export default function ResultPage() {
   const colors = ['#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
   const pieChartData = analysisData.summary.speciesFound.map((species, index) => ({
     name: species.replace(/_/g, ' '),
-    value: Math.round(100 / analysisData.summary.speciesFound.length), // Equal distribution for now
+    value: species.percentage || Math.round(100 / analysisData.summary.speciesFound.length),
     color: colors[index % colors.length]
   }));
 
@@ -733,17 +759,20 @@ export default function ResultPage() {
             <StatCard 
               title="Species Found" 
               value={analysisData.summary.speciesFound.length} 
-              unit="unique species identified" 
+              unit="unique species identified"
+              icon={Dna}
             />
             <StatCard 
               title="Total Sequences" 
               value={analysisData.summary.totalSequences.toLocaleString()} 
-              unit="sequences processed" 
+              unit="sequences processed"
+              icon={Database}
             />
             <StatCard 
               title="Average Confidence" 
               value={`${confidenceValue}%`}
-              unit="sequence identification accuracy" 
+              unit="sequence identification accuracy"
+              icon={Activity}
             />
           </div>
 
@@ -818,8 +847,48 @@ export default function ResultPage() {
               </div>
             </div>
             
-            <div style={styles.placeholder}>
-              <div style={styles.placeholderText}>Additional Chart Placeholder</div>
+            <div style={styles.card}>
+              <h3 style={styles.chartTitle}>Species Geographical Distribution</h3>
+              <div style={{
+                width: '100%',
+                height: '320px',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                position: 'relative'
+              }}>
+                <iframe
+                  src={`https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${analysisData?.summary?.speciesFound?.[0]?.replace('_', '+') || 'default+location'}`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(31, 41, 55, 0.8)',
+                }}>
+                  <div style={{
+                    color: 'white',
+                    textAlign: 'center',
+                    padding: '20px',
+                  }}>
+                    <MapPin size={40} style={{ marginBottom: '10px' }} />
+                    <p>Interactive map feature coming soon!</p>
+                    <p style={{ fontSize: '14px', color: '#9ca3af' }}>
+                      Will show geographical distribution of detected species
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

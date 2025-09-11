@@ -4,6 +4,7 @@ import SignUpPage from './SignUpPage';
 import LoginPage from './LoginPage';
 import Dashboard from './Dashboard.jsx';
 import ResultsPage from './ResultsPage.jsx';
+import Pipeline from './components/Pipeline_Horizontal';
 import './App.css';
 
 const RedirectComponent = () => {
@@ -21,6 +22,7 @@ function App() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/pipeline" element={<Pipeline />} />
         <Route path="/results" element={<ResultsPage />} />
         <Route path="/results/:id" element={<ResultsPage />} />
       </Routes>

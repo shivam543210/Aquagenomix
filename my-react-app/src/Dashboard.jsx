@@ -146,20 +146,19 @@ const Dashboard = () => {
 
       const result = await response.json();
       
-      // Update the optimistic entry with real data
-      setProjectsData(prevProjects =>
-        prevProjects.map(p => 
-          (p.id === tempId ? {
+      // Navigate to the pipeline page with the analysis data
+      navigate('/pipeline', {
+        state: {
+          analysisData: {
             id: result._id,
             projectName: result.projectName || 'Unnamed Project',
             fileName: result.fileName,
-            submissionDate: result.uploadDate ? new Date(result.uploadDate).toISOString().split('T')[0] : 'N/A',
-            status: result.status,
-            sequenceCount: result.summary ? result.summary.totalSequences : 'N/A',
-            speciesFound: result.summary && result.summary.speciesFound ? result.summary.speciesFound.length : 'N/A',
-          } : p)
-        )
-      );
+            uploadDate: result.uploadDate,
+            description: projectDescription,
+            status: 'Processing'
+          }
+        }
+      });
 
       // Clear form - Properly reset all form states
       setProjectName('');

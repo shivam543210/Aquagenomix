@@ -32,7 +32,7 @@ const Dashboard = () => {
   const fetchProjects = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('https://sih-backend-sw7d.onrender.com/api/analysis?page=1&limit=100', {
+      const response = await fetch('http://localhost:3000/api/analysis?page=1&limit=100', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -132,7 +132,7 @@ const Dashboard = () => {
     formData.append('projectDescription', projectDescription);
 
     try {
-      const response = await fetch('https://sih-backend-sw7d.onrender.com/api/analysis/upload', {
+      const response = await fetch('http://localhost:3000/api/analysis/upload', {
         method: 'POST',
         body: formData,
         headers: {

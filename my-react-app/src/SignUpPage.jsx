@@ -213,7 +213,7 @@ const SignUpPage = () => {
           <div className="form-footer">
             <p className="login-prompt">
               Already have an account? 
-              <button className="login-link">Sign In</button>
+              <Link to="/login" className="login-link">Login</Link>
             </p>
           </div>
         </div>

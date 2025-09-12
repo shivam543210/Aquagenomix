@@ -126,58 +126,62 @@ const Dashboard = () => {
 
     setProjectsData(prevProjects => [newProjectOptimistic, ...prevProjects]);
 
+    // Navigate IMMEDIATELY to pipeline (no waiting)
+    navigate('/pipeline', {
+      state: {
+        analysisData: {
+          id: tempId, // Use temporary ID
+          projectName: projectName,
+          fileName: selectedFile.name,
+          uploadDate: new Date().toISOString(),
+          description: projectDescription,
+          status: 'Processing'
+        }
+      }
+    });
+
+    // Clear form immediately
+    setProjectName('');
+    setProjectDescription('');
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    // Upload to API in the background (fire and forget)
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('projectName', projectName);
     formData.append('projectDescription', projectDescription);
 
-    try {
-      const response = await fetch('http://localhost:3000/api/analysis/upload', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-
+    // Background upload - no await, no blocking
+    fetch('http://localhost:3000/api/analysis/upload', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      }
+    })
+    .then(response => {
       if (!response.ok) {
         throw new Error('Analysis submission failed');
       }
-
-      const result = await response.json();
-      
-      // Navigate to the pipeline page with the analysis data
-      navigate('/pipeline', {
-        state: {
-          analysisData: {
-            id: result._id,
-            projectName: result.projectName || 'Unnamed Project',
-            fileName: result.fileName,
-            uploadDate: result.uploadDate,
-            description: projectDescription,
-            status: 'Processing'
-          }
-        }
-      });
-
-      // Clear form - Properly reset all form states
-      setProjectName('');
-      setProjectDescription('');
-      setSelectedFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-
-      // Refresh the projects list to get latest data
+      return response.json();
+    })
+    .then(result => {
+      console.log('Background upload successful:', result);
+      // Refresh the projects list after successful upload
       setTimeout(() => {
         fetchProjects();
-      }, 1000);
-
-    } catch (error) {
-      console.error("Failed to start analysis:", error);
+      }, 2000);
+    })
+    .catch(error => {
+      console.error("Background upload failed:", error);
+      // Remove the optimistic entry if upload fails
       setProjectsData(prevProjects => prevProjects.filter(p => p.id !== tempId));
-      alert("Error submitting analysis. Please try again.");
-    }
+      // Optionally show a notification instead of alert since user is on pipeline page
+      console.error("Upload failed, but user is already on pipeline page");
+    });
   };
 
   const totalProjects = projectsData.length;
@@ -291,8 +295,6 @@ const Dashboard = () => {
                           <div className="recent-analysis-content">
                             <button className="recent-analysis-button">
                               <span className="project-name">{item.name}</span>
-                             
-                              
                             </button>
                           </div>
                         </li>
@@ -472,7 +474,6 @@ const Dashboard = () => {
                                   {/* View Button - Always clickable for mobile */}
                                   <Link 
                                     to={`/results/${project.id}`}
-                                    
                                     state={{ 
                                       projectData: project,
                                       analysisId: project.id,
